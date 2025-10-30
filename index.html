@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban Board - Duolingo Sprint 3</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header .info {
+            display: flex;
+            gap: 30px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .info-item strong {
+            color: #333;
+        }
+        
+        .kanban-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 100%;
+            overflow-x: auto;
+            padding-bottom: 20px;
+        }
+        
+        .column {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 15px;
+            min-width: 280px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .column-header {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .column-header .count {
+            background: #eee;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: normal;
+        }
+        
+        .column.backlog .column-header { border-color: #95a5a6; color: #95a5a6; }
+        .column.todo .column-header { border-color: #3498db; color: #3498db; }
+        .column.progress .column-header { border-color: #f39c12; color: #f39c12; }
+        .column.review .column-header { border-color: #9b59b6; color: #9b59b6; }
+        .column.testing .column-header { border-color: #e74c3c; color: #e74c3c; }
+        .column.done .column-header { border-color: #27ae60; color: #27ae60; }
+        
+        .card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: move;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+        
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            line-height: 1.4;
+        }
+        
+        .card-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        
+        .tag {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+        
+        .tag.frontend { background: #e3f2fd; color: #1976d2; }
+        .tag.backend { background: #f3e5f5; color: #7b1fa2; }
+        .tag.design { background: #fce4ec; color: #c2185b; }
+        .tag.devops { background: #e0f2f1; color: #00796b; }
+        .tag.qa { background: #fff3e0; color: #e65100; }
+        
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid #f0f0f0;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .assignee {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .story-points {
+            background: #f5f5f5;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .legend h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .legend-items {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+        
+        @media (max-width: 768px) {
+            .kanban-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🦉 Kanban Board - Sprint 3: Sistema de Lições</h1>
+        <div class="info">
+            <div class="info-item">
+                <span>📅</span>
+                <span><strong>Sprint:</strong> 3 de 14</span>
+            </div>
+            <div class="info-item">
+                <span>⏱️</span>
+                <span><strong>Duração:</strong> 10 dias (14-25 Nov)</span>
+            </div>
+            <div class="info-item">
+                <span>📊</span>
+                <span><strong>Story Points:</strong> 66 SP</span>
+            </div>
+            <div class="info-item">
+                <span>👥</span>
+                <span><strong>Time:</strong> 9 pessoas</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="kanban-container">
+        <!-- BACKLOG -->
+        <div class="column backlog">
+            <div class="column-header">
+                <span>📋 Backlog</span>
+                <span class="count">2</span>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Sistema de Hints (Dicas)</div>
+                <div class="card-meta">
+                    <span class="tag frontend">Frontend</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">D2</div>
+                        <span>Dev 2</span>
+                    </div>
+                    <span class="story-points">5 SP</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Animação de mascote Duo</div>
+                <div class="card-meta">
+                    <span class="tag design">Design</span>
+                    <span class="tag frontend">Frontend</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">DS</div>
+                        <span>Designer</span>
+                    </div>
+                    <span class="story-points">8 SP</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- TO DO -->
+        <div class="column todo">
+            <div class="column-header">
+                <span>📝 To Do</span>
+                <span class="count">3</span>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">API POST /lessons/:id/submit</div>
+                <div class="card-meta">
+                    <span class="tag backend">Backend</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">D3</div>
+                        <span>Dev 3</span>
+                    </div>
+                    <span class="story-points">3 SP</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Sistema de vidas (backend)</div>
+                <div class="card-meta">
+                    <span class="tag backend">Backend</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">D4</div>
+                        <span>Dev 4</span>
+                    </div>
+                    <span class="story-points">3 SP</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Wireframes de exercícios</div>
+                <div class="card-meta">
+                    <span class="tag design">Design</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">DS</div>
+                        <span>Designer</span>
+                    </div>
+                    <span class="story-points">3 SP</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- IN PROGRESS -->
+        <div class="column progress">
+            <div class="column-header">
+                <span>⚡ In Progress</span>
+                <span class="count">5</span>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Criar modelo de Lição/Exercício (DB)</div>
+                <div class="card-meta">
+                    <span class="tag backend">Backend</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">D3</div>
+                        <span>Dev 3</span>
+                    </div>
+                    <span class="story-points">3 SP</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Lógica de correção (tradução)</div>
+                <div class="card-meta">
+                    <span class="tag backend">Backend</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">D4</div>
+                        <span>Dev 4</span>
+                    </div>
+                    <span class="story-points">3 SP</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Layout base da tela de lição</div>
+                <div class="card-meta">
+                    <span class="tag frontend">Frontend</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">D1</div>
+                        <span>Dev 1</span>
+                    </div>
+                    <span class="story-points">3 SP</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Exercício: Input de texto</div>
+                <div class="card-meta">
+                    <span class="tag frontend">Frontend</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">D2</div>
+                        <span>Dev 2</span>
+                    </div>
+                    <span class="story-points">2 SP</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">UI Design - Tela de lição (Figma)</div>
+                <div class="card-meta">
+                    <span class="tag design">Design</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">DS</div>
+                        <span>Designer</span>
+                    </div>
+                    <span class="story-points">5 SP</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- CODE REVIEW -->
+        <div class="column review">
+            <div class="column-header">
+                <span>👀 Code Review</span>
+                <span class="count">2</span>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">API GET /lessons/:id</div>
+                <div class="card-meta">
+                    <span class="tag backend">Backend</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">D3</div>
+                        <span>Dev 3</span>
+                    </div>
+                    <span class="story-points">2 SP</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Barra de progresso da lição</div>
+                <div class="card-meta">
+                    <span class="tag frontend">Frontend</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">D1</div>
+                        <span>Dev 1</span>
+                    </div>
+                    <span class="story-points">2 SP</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- TESTING/QA -->
+        <div class="column testing">
+            <div class="column-header">
+                <span>🧪 Testing</span>
+                <span class="count">2</span>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Contador de vidas (UI)</div>
+                <div class="card-meta">
+                    <span class="tag frontend">Frontend</span>
+                    <span class="tag qa">QA</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">QA</div>
+                        <span>QA Eng.</span>
+                    </div>
+                    <span class="story-points">2 SP</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Lógica múltipla escolha</div>
+                <div class="card-meta">
+                    <span class="tag backend">Backend</span>
+                    <span class="tag qa">QA</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">QA</div>
+                        <span>QA Eng.</span>
+                    </div>
+                    <span class="story-points">2 SP</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- DONE -->
+        <div class="column done">
+            <div class="column-header">
+                <span>✅ Done</span>
+                <span class="count">4</span>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Setup de testes E2E (Detox)</div>
+                <div class="card-meta">
+                    <span class="tag qa">QA</span>
+                    <span class="tag devops">DevOps</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">D5</div>
+                        <span>Dev 5</span>
+                    </div>
+                    <span class="story-points">3 SP</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Animações de feedback (✓ e ✗)</div>
+                <div class="card-meta">
+                    <span class="tag frontend">Frontend</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">D1</div>
+                        <span>Dev 1</span>
+                    </div>
+                    <span class="story-points">3 SP</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Sistema de pontuação (XP)</div>
+                <div class="card-meta">
+                    <span class="tag backend">Backend</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">D4</div>
+                        <span>Dev 4</span>
+                    </div>
+                    <span class="story-points">5 SP</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Cache de lições no Redis</div>
+                <div class="card-meta">
+                    <span class="tag devops">DevOps</span>
+                    <span class="tag backend">Backend</span>
+                </div>
+                <div class="card-footer">
+                    <div class="assignee">
+                        <div class="avatar">D5</div>
+                        <span>Dev 5</span>
+                    </div>
+                    <span class="story-points">3 SP</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="legend">
+        <h3>📌 Legenda</h3>
+        <div class="legend-items">
+            <div class="legend-item">
+                <span class="tag frontend">Frontend</span>
+                <span>Mobile (React Native/Flutter)</span>
+            </div>
+            <div class="legend-item">
+                <span class="tag backend">Backend</span>
+                <span>APIs e Servidor</span>
+            </div>
+            <div class="legend-item">
+                <span class="tag design">Design</span>
+                <span>UI/UX</span>
+            </div>
+            <div class="legend-item">
+                <span class="tag devops">DevOps</span>
+                <span>Infraestrutura</span>
+            </div>
+            <div class="legend-item">
+                <span class="tag qa">QA</span>
+                <span>Testes</span>
+            </div>
+            <div class="legend-item">
+                <span class="story-points">SP</span>
+                <span>Story Points (estimativa)</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
